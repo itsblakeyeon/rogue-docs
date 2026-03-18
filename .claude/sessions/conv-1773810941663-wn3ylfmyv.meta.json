@@ -1,0 +1,20 @@
+{
+  "id": "conv-1773810941663-wn3ylfmyv",
+  "title": "Confirm Obsidian vault on GitHub",
+  "titleGenerationStatus": "success",
+  "createdAt": 1773810941663,
+  "updatedAt": 1773811348883,
+  "lastResponseAt": 1773811139525,
+  "sessionId": "bb59b293-20f2-408d-8612-b5921048b515",
+  "sdkSessionId": "bb59b293-20f2-408d-8612-b5921048b515",
+  "currentNote": "planning/의료.md",
+  "usage": {
+    "model": "haiku",
+    "inputTokens": 8,
+    "cacheCreationInputTokens": 335,
+    "cacheReadInputTokens": 118370,
+    "contextWindow": 200000,
+    "contextTokens": 118713,
+    "percentage": 59
+  }
+}

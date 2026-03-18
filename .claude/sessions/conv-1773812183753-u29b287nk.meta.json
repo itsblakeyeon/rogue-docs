@@ -1,0 +1,19 @@
+{
+  "id": "conv-1773812183753-u29b287nk",
+  "title": "Check goal page for healthcare content",
+  "titleGenerationStatus": "success",
+  "createdAt": 1773812183753,
+  "updatedAt": 1773813006059,
+  "lastResponseAt": 1773812993717,
+  "sessionId": "6c35ab5b-58ee-433e-a124-660a8de7121c",
+  "sdkSessionId": "6c35ab5b-58ee-433e-a124-660a8de7121c",
+  "usage": {
+    "model": "haiku",
+    "inputTokens": 8,
+    "cacheCreationInputTokens": 1746,
+    "cacheReadInputTokens": 164710,
+    "contextWindow": 200000,
+    "contextTokens": 166464,
+    "percentage": 83
+  }
+}

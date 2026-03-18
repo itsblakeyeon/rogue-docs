@@ -1,0 +1,20 @@
+{
+  "id": "conv-1773809939437-p4d08r5iw",
+  "title": "Troubleshoot Feature Issue",
+  "titleGenerationStatus": "success",
+  "createdAt": 1773809939438,
+  "updatedAt": 1773810591067,
+  "lastResponseAt": 1773809948931,
+  "sessionId": "c1e52c68-8ecb-4595-aa5d-1072dcedad19",
+  "sdkSessionId": "c1e52c68-8ecb-4595-aa5d-1072dcedad19",
+  "currentNote": "planning/병원.md",
+  "usage": {
+    "model": "haiku",
+    "inputTokens": 8,
+    "cacheCreationInputTokens": 325,
+    "cacheReadInputTokens": 115478,
+    "contextWindow": 200000,
+    "contextTokens": 115811,
+    "percentage": 58
+  }
+}

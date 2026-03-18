@@ -1,0 +1,20 @@
+{
+  "id": "conv-1773811374283-ulvkavxr5",
+  "title": "Find website tracking detection tools",
+  "titleGenerationStatus": "success",
+  "createdAt": 1773811374283,
+  "updatedAt": 1773812161198,
+  "lastResponseAt": 1773811889532,
+  "sessionId": "cf1983ef-5b0d-400b-be58-e103cd366205",
+  "sdkSessionId": "cf1983ef-5b0d-400b-be58-e103cd366205",
+  "currentNote": "planning/의료.md",
+  "usage": {
+    "model": "haiku",
+    "inputTokens": 8,
+    "cacheCreationInputTokens": 591,
+    "cacheReadInputTokens": 121427,
+    "contextWindow": 200000,
+    "contextTokens": 122026,
+    "percentage": 61
+  }
+}
