@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer';
-import { readFile } from 'fs/promises';
+import { readFile, writeFile, rm } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -9,40 +9,37 @@ const __dirname = dirname(__filename);
 const htmlPath = join(__dirname, '제안서.html');
 const outputPath = join(__dirname, '제안서_ROGUE.pdf');
 
+const WIDTH = 1280;
+const HEIGHT = 720;
+
 async function generatePDF() {
   const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
+  await page.setViewport({ width: WIDTH, height: HEIGHT, deviceScaleFactor: 2 });
 
-  // 16:9 viewport for presentation-style slides
-  const width = 1280;
-  const height = 720;
-  await page.setViewport({ width, height });
-
-  // Load the HTML file
   const htmlContent = await readFile(htmlPath, 'utf-8');
   await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
-  // Inject PDF-specific overrides
+  // Prepare the page: force animations, hide nav, fix rendering issues
   await page.evaluate(() => {
-    // 1. Force all .reveal elements visible (disable scroll animations)
-    document.querySelectorAll('.reveal').forEach(el => {
-      el.classList.add('visible');
-    });
+    // Force all reveals visible
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
 
-    // 2. Hide slide indicator dots
+    // Hide slide indicator
     const indicator = document.getElementById('slide-indicator');
     if (indicator) indicator.style.display = 'none';
 
-    // 3. Disable scroll-snap (not needed for PDF)
+    // Disable scroll-snap
     document.documentElement.style.scrollSnapType = 'none';
+    document.documentElement.style.scrollBehavior = 'auto';
+    document.body.style.overflow = 'visible';
 
-    // 4. Force bar chart fills to their target widths
+    // Force bar chart fills
     document.querySelectorAll('.bar-fill').forEach(bar => {
-      const w = bar.dataset.width;
-      if (w) bar.style.width = w;
+      if (bar.dataset.width) bar.style.width = bar.dataset.width;
     });
 
-    // 5. Force count-up numbers to their final values
+    // Force count-up numbers to final values
     document.querySelectorAll('.stat-number[data-count]').forEach(el => {
       const target = parseFloat(el.dataset.count);
       const suffix = el.dataset.suffix || '';
@@ -51,64 +48,108 @@ async function generatePDF() {
       el.textContent = prefix + (decimal > 0 ? target.toFixed(decimal) : Math.floor(target)) + suffix;
     });
 
-    // 6. Measure each slide and scale down if content overflows 720px
-    const targetHeight = 720;
-    document.querySelectorAll('.slide').forEach(slide => {
-      // Reset to auto height first to measure natural content height
-      slide.style.minHeight = 'auto';
-      slide.style.height = 'auto';
-      slide.style.overflow = 'visible';
-    });
-
-    // Force layout recalc
-    document.body.offsetHeight;
-
-    document.querySelectorAll('.slide').forEach(slide => {
-      const naturalHeight = slide.scrollHeight;
-      if (naturalHeight > targetHeight) {
-        const scale = targetHeight / naturalHeight;
-        slide.style.height = `${targetHeight}px`;
-        slide.style.overflow = 'hidden';
-        // Wrap content in a scaled container
-        const inner = slide.querySelector('.slide-inner');
-        if (inner) {
-          inner.style.transform = `scale(${scale})`;
-          inner.style.transformOrigin = 'top center';
-        }
-      } else {
-        slide.style.height = `${targetHeight}px`;
-      }
-      slide.style.maxHeight = `${targetHeight}px`;
-      slide.style.pageBreakAfter = 'always';
-      slide.style.breakAfter = 'page';
-    });
-
-    // 7. Fix gradient text (background-clip:text breaks in Chromium PDF)
+    // Fix gradient text (background-clip:text breaks in Chromium PDF)
     document.querySelectorAll('.big-number').forEach(el => {
       el.style.background = 'none';
       el.style.webkitBackgroundClip = 'unset';
       el.style.backgroundClip = 'unset';
-      el.style.webkitTextFillColor = 'var(--accent-light)';
-      el.style.color = 'var(--accent-light)';
+      el.style.webkitTextFillColor = '#60a5fa';
+      el.style.color = '#60a5fa';
     });
-
-    // 8. Remove body scroll behavior
-    document.body.style.overflow = 'visible';
-    document.documentElement.style.scrollBehavior = 'auto';
   });
 
-  // Wait for fonts to load
   await page.evaluate(() => document.fonts.ready);
 
-  // Generate PDF
-  await page.pdf({
+  // Get number of slides
+  const slideCount = await page.evaluate(() => document.querySelectorAll('.slide').length);
+  console.log(`Found ${slideCount} slides`);
+
+  // Screenshot each slide individually
+  const screenshotPaths = [];
+  for (let i = 0; i < slideCount; i++) {
+    // Scroll to slide and get its bounding rect
+    const clip = await page.evaluate((idx) => {
+      const slide = document.querySelectorAll('.slide')[idx];
+      slide.scrollIntoView({ behavior: 'instant' });
+      const rect = slide.getBoundingClientRect();
+      return {
+        x: 0,
+        y: rect.top + window.scrollY,
+        width: rect.width,
+        height: rect.height,
+      };
+    }, i);
+
+    // Take full-page screenshot of this slide area
+    const screenshotPath = join(__dirname, `_slide_${i}.png`);
+    await page.screenshot({
+      path: screenshotPath,
+      clip: {
+        x: 0,
+        y: clip.y,
+        width: WIDTH,
+        height: clip.height,
+      },
+    });
+    screenshotPaths.push({ path: screenshotPath, height: clip.height });
+    console.log(`Slide ${i + 1}: ${clip.height}px`);
+  }
+
+  // Now create the PDF: build an HTML page with each screenshot as a page
+  let pdfHtml = `<!DOCTYPE html><html><head>
+<style>
+  * { margin: 0; padding: 0; }
+  body { background: #0a0e27; }
+  .page {
+    width: ${WIDTH}px;
+    height: ${HEIGHT}px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    page-break-after: always;
+    break-after: page;
+    background: #0a0e27;
+  }
+  .page img {
+    width: ${WIDTH}px;
+    display: block;
+  }
+</style>
+</head><body>`;
+
+  for (let i = 0; i < screenshotPaths.length; i++) {
+    const { path: ssPath, height } = screenshotPaths[i];
+    const imgData = await readFile(ssPath);
+    const base64 = imgData.toString('base64');
+    // If the slide is taller than viewport, scale down the image to fit
+    const needsScale = height > HEIGHT;
+    const imgStyle = needsScale
+      ? `height: ${HEIGHT}px; width: auto; object-fit: contain;`
+      : '';
+    pdfHtml += `<div class="page"><img src="data:image/png;base64,${base64}" style="${imgStyle}" /></div>`;
+  }
+
+  pdfHtml += '</body></html>';
+
+  // Render screenshots as PDF
+  const pdfPage = await browser.newPage();
+  await pdfPage.setViewport({ width: WIDTH, height: HEIGHT });
+  await pdfPage.setContent(pdfHtml, { waitUntil: 'load' });
+
+  await pdfPage.pdf({
     path: outputPath,
-    width: `${width}px`,
-    height: `${height}px`,
+    width: `${WIDTH}px`,
+    height: `${HEIGHT}px`,
     printBackground: true,
     preferCSSPageSize: false,
     margin: { top: 0, right: 0, bottom: 0, left: 0 },
   });
+
+  // Cleanup temp screenshots
+  for (const { path: ssPath } of screenshotPaths) {
+    await rm(ssPath, { force: true });
+  }
 
   await browser.close();
   console.log(`PDF generated: ${outputPath}`);
