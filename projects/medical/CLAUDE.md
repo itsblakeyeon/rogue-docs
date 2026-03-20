@@ -68,8 +68,8 @@ projects/medical/
 ## 크롤링 파이프라인 (`crawling/`)
 
 ### 데이터 소스
-1. **HIRA API** (건강보험심사평가원) — 병원 목록 + 메타데이터
-2. **네이버 지역검색 API** — HIRA에서 누락된 병원 보완 (특히 치과, 경기도)
+1. **HIRA API** (건강보험심사평가원) — 병원 전수 목록 + 메타데이터 (권위 소스)
+2. **네이버 지역검색 API** — HIRA 누락 병원 보완 + URL/연락처 보강
 
 ### Commands
 
@@ -80,16 +80,35 @@ source .venv/bin/activate
 # 테스트
 python -m pytest tests/ -v
 
-# HIRA 파이프라인 (우선순위 그룹별)
-python src/main.py --priority 1 --skip-detail   # 피부과+성형외과
-python src/main.py --priority 2 --skip-detail   # 치과+안과
+# === 전체 파이프라인 (피부과/성형외과) ===
 
-# 네이버 수집
-python src/naver_collect.py                      # 전체
-python src/naver_collect_detail.py               # 동/구 단위 세부
+# 1. HIRA 수집
+python src/main.py --priority 1 --skip-detail
 
-# 결과 합산
-python src/merge_and_cleanup.py                  # HIRA + 네이버 합산
+# 2. 네이버 수집 (구 단위 + 동 단위 + 키워드 변형)
+python src/naver_collect.py --dept 피부과
+python src/naver_collect.py --dept 성형외과
+python src/naver_collect.py --dept 피부클리닉
+python src/naver_collect.py --dept 성형클리닉
+python src/naver_collect_detail.py --dept 피부과
+python src/naver_collect_detail.py --dept 성형외과
+
+# 3. HIRA 병원명 네이버 검색 (URL 없는 병원 보강)
+python src/naver_enrich_hira.py                  # 최초 실행
+python src/naver_enrich_hira.py --retry-failed   # 실패건 재시도 (느슨한 매칭)
+
+# 4. 네이버 URL을 HIRA에 반영
+python src/apply_naver_enrichment.py
+
+# 5. 이메일 크롤링 (deep crawl)
+python src/step3_crawl_emails.py --input output/step2_hospitals_enriched.csv --output output/step3_hospitals_enriched_final.csv
+python src/naver_crawl_emails.py
+
+# 6. 합산
+python src/merge_and_cleanup.py
+
+# 7. 이메일 검증 (쓰레기/대행사/MX레코드/형식)
+python src/validate_emails.py
 ```
 
 ### Architecture
@@ -99,19 +118,28 @@ python src/merge_and_cleanup.py                  # HIRA + 네이버 합산
 Step 1 (hira_client → step1_collect) → output/step1_hospitals_raw.csv
 Step 2 (url_enricher → step2_enrich_urls) → output/step2_hospitals_with_urls.csv
 Step 3 (email_crawler → step3_crawl_emails) → output/step3_hospitals_final.csv
-cleanup.py → output/step3_hospitals_final_clean.csv
+
+[네이버 URL 보강]
+naver_enrich_hira.py → output/hira_naver_enriched.csv
+apply_naver_enrichment.py → output/step2_hospitals_enriched.csv
+step3_crawl_emails.py (enriched input) → output/step3_hospitals_enriched_final.csv
 
 [네이버 파이프라인]
 naver_collect.py + naver_collect_detail.py → output/naver_hospitals.csv
 naver_crawl_emails.py → output/naver_hospitals_with_email.csv
 
 [합산]
-merge_and_cleanup.py → output/all_hospitals_with_email.csv (최종)
+merge_and_cleanup.py → output/all_hospitals_with_email.csv (1,123건)
+
+[이메일 검증]
+validate_emails.py → output/all_hospitals_valid_email.csv (최종, 883건)
+                   → output/rejected_emails.csv (제거 사유 포함)
 ```
 
 ### API 제약
 - HIRA API: `.env`의 `HIRA_API_KEY`, 일일 1,000건
 - 네이버 API: `.env`의 `NAVER_CLIENT_ID` + `NAVER_CLIENT_SECRET`, 일일 25,000건
+- 네이버 키 순서 주의: ID와 Secret이 직관적 순서와 반대임
 
 ## 제안서 편집 규칙
 - **비주얼 우선**: 표 반복 지양. 큰 숫자 + 차트/아이콘 + 카드 레이아웃 선호

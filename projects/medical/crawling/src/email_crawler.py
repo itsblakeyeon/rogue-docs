@@ -26,7 +26,18 @@ class EmailCrawler:
     FILTERED_PREFIXES = {"noreply@", "no-reply@", "webmaster@", "mailer-daemon@"}
 
     # Contact page keywords (in href or link text)
-    CONTACT_KEYWORDS = ["연락처", "문의", "contact", "오시는길", "about", "소개", "인사말", "greeting"]
+    CONTACT_KEYWORDS = [
+        "연락처", "문의", "contact", "오시는길", "about", "소개", "인사말", "greeting",
+        "footer", "회사소개", "병원소개", "의료진", "원장", "찾아오시는", "상담",
+        "고객센터", "customer", "inquiry", "staff", "doctor", "team",
+    ]
+
+    # Subpage path patterns to try when no contact page found
+    SUBPAGE_PATHS = [
+        "/contact", "/about", "/inquiry", "/greeting",
+        "/sub/contact", "/sub/about", "/company", "/info",
+        "/page/contact", "/page/about",
+    ]
 
     # Representative name patterns
     NAME_PATTERNS = [
@@ -138,7 +149,7 @@ class EmailCrawler:
         return None
 
     def crawl_hospital(self, url: str) -> dict:
-        """Main crawl method for a hospital URL."""
+        """Main crawl method for a hospital URL. Deep crawl: homepage → contact pages → subpage paths."""
         result = {"emails": [], "representative": None}
 
         html = self.fetch_page(url)
@@ -149,14 +160,30 @@ class EmailCrawler:
         result["representative"] = self.extract_representative_name(html)
 
         if not emails:
-            # Try contact pages
+            # Try contact pages found in links
             contact_pages = self.find_contact_pages(html, url)
-            for contact_url in contact_pages:
+            for contact_url in contact_pages[:5]:  # limit to 5
                 contact_html = self.fetch_page(contact_url)
                 if contact_html:
                     emails.update(self.extract_emails(contact_html))
                     if not result["representative"]:
                         result["representative"] = self.extract_representative_name(contact_html)
+                if emails:
+                    break
+
+        if not emails:
+            # Try common subpage paths
+            parsed = urlparse(url)
+            base = f"{parsed.scheme}://{parsed.netloc}"
+            for path in self.SUBPAGE_PATHS:
+                sub_url = base + path
+                sub_html = self.fetch_page(sub_url)
+                if sub_html and len(sub_html) > 500:  # skip error pages
+                    emails.update(self.extract_emails(sub_html))
+                    if not result["representative"]:
+                        result["representative"] = self.extract_representative_name(sub_html)
+                if emails:
+                    break
 
         result["emails"] = sorted(emails)
         return result

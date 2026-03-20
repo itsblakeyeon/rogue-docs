@@ -7,6 +7,8 @@ import logging
 import os
 import sys
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Add project root and src dir to path for consistent imports
 _SRC_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -27,6 +29,7 @@ from config import (
 )
 from email_crawler import EmailCrawler
 
+MAX_WORKERS = 20
 FAILED_URLS_LOG = os.path.join(OUTPUT_DIR, "failed_urls.log")
 
 logging.basicConfig(
@@ -122,17 +125,17 @@ def main() -> None:
     total = len(targets)
     logger.info("Hospitals with website to crawl: %d", total)
 
-    crawler = EmailCrawler(use_playwright=args.use_playwright)
     failed_urls: list[str] = []
     crawled_count = 0
     email_found_count = 0
 
-    for idx, (df_idx, row) in enumerate(targets.iterrows(), start=1):
+    # Pre-fill already crawled / already have email
+    to_crawl = []
+    for df_idx, row in targets.iterrows():
         hospital_name = str(row.get("hospital_name", ""))
         url = str(row["website"]).strip()
         key = hospital_name + "|" + url
 
-        # Skip if already crawled (resume)
         if key in existing:
             prev = existing[key]
             df.at[df_idx, "email"] = prev["email"]
@@ -140,40 +143,55 @@ def main() -> None:
             if prev["email"]:
                 email_found_count += 1
             crawled_count += 1
-            logger.info(
-                "Skipping [%d/%d]: %s (already crawled)", idx, total, hospital_name
-            )
             continue
 
-        # Also skip if email is already populated in the input
         if str(row["email"]).strip():
             email_found_count += 1
             crawled_count += 1
             continue
 
-        logger.info("Crawling [%d/%d]: %s (%s)...", idx, total, hospital_name, url)
+        to_crawl.append((df_idx, hospital_name, url))
 
+    logger.info("To crawl: %d (skipped %d already done)", len(to_crawl), crawled_count)
+
+    lock = threading.Lock()
+    completed = 0
+
+    def _crawl_one(item):
+        df_idx, hospital_name, url = item
+        crawler = EmailCrawler(use_playwright=args.use_playwright)
         try:
             result = crawler.crawl_hospital(url)
             emails_str = ", ".join(result["emails"]) if result["emails"] else ""
             rep = result["representative"] or ""
-
-            df.at[df_idx, "email"] = emails_str
-            df.at[df_idx, "representative"] = rep
-
-            if emails_str:
-                email_found_count += 1
-
-            crawled_count += 1
+            return df_idx, hospital_name, url, emails_str, rep, None
         except Exception as e:
-            logger.warning("Failed to crawl %s: %s", url, e)
-            failed_urls.append(f"{hospital_name}\t{url}\t{e}")
+            return df_idx, hospital_name, url, "", "", str(e)
 
-        # Save periodically (every 10 hospitals)
-        if idx % 10 == 0:
-            df.to_csv(output_path, index=False, encoding="utf-8-sig")
+    crawl_total = len(to_crawl)
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {executor.submit(_crawl_one, item): item for item in to_crawl}
+        for future in as_completed(futures):
+            df_idx, hospital_name, url, emails_str, rep, error = future.result()
+            completed += 1
 
-        time.sleep(REQUEST_DELAY)
+            with lock:
+                if error:
+                    logger.warning("[%d/%d] Failed %s: %s", completed, crawl_total, hospital_name, error)
+                    failed_urls.append(f"{hospital_name}\t{url}\t{error}")
+                else:
+                    df.at[df_idx, "email"] = emails_str
+                    df.at[df_idx, "representative"] = rep
+                    if emails_str:
+                        email_found_count += 1
+                        logger.info("[%d/%d] %s → %s", completed, crawl_total, hospital_name, emails_str)
+                    else:
+                        logger.info("[%d/%d] %s → No email", completed, crawl_total, hospital_name)
+                    crawled_count += 1
+
+                if completed % 50 == 0:
+                    df.to_csv(output_path, index=False, encoding="utf-8-sig")
+                    logger.info("Progress saved (%d/%d)", completed, crawl_total)
 
     # Final save
     logger.info("Saving full results to %s", output_path)

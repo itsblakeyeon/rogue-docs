@@ -38,7 +38,7 @@ class UrlEnricher:
         "cafe.",
     ]
 
-    def __init__(self, delay: float = 1.0):
+    def __init__(self, delay: float = 0.2):
         self.delay = delay
         self.user_agent = (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

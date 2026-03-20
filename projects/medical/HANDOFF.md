@@ -1,39 +1,84 @@
 # Handoff
 
 ## 목표
-1. PDF 흐릿한 텍스트 문제 수정 (이전 세션에서 완료)
-2. 이메일 주소 변경 (`itsblakeyeon@gmail.com` → `blake@therogues.xyz`)
-3. PDF 파일명 변경 (`제안서_ROGUE.pdf` → `병원 매출 성장 제안서 - ROGUE.pdf`)
-4. PDF 페이지 넘버 위치/크기 불일치 수정
+병원 이메일 크롤링 + 검증 완료 → 영업 이메일 리스트 확보.
 
 ## 완료
-- **이메일 변경**: `제안서.html`, `website/index.html` 모두 `blake@therogues.xyz`로 변경
-- **PDF 파일명 변경**: `generate-pdf.mjs`의 outputPath를 `병원 매출 성장 제안서 - ROGUE.pdf`로 변경, 기존 `제안서_ROGUE.pdf` 삭제
-- **페이지 넘버 수정**: 스크린샷 단계에서 `.slide-number` 숨기고, PDF 조립 단계에서 일관된 크기/위치의 페이지 넘버를 HTML로 직접 삽입
-- **PDF 재생성 완료**: 모든 수정 반영된 `병원 매출 성장 제안서 - ROGUE.pdf` 생성
-- **FeatPaper 링크 저장**: `https://featpaper.com/v/O5cZTBCt` (메모리에 저장)
+
+### 크롤링 파이프라인 (2026-03-20)
+- **HIRA 파이프라인** — 서울+경기 피부과/성형외과 6,971건 전수 수집
+- **네이버 구 단위 검색** — 56지역 × 피부과/성형외과 (페이지네이션 5페이지, 25건/쿼리)
+- **네이버 동 단위 세부 검색** — 서울 25개구 주요동 + 경기 6개시 구단위
+- **네이버 키워드 변형** — 피부클리닉/스킨클리닉/피부미용/성형클리닉 추가 검색
+- **HIRA 병원명 개별 네이버 검색** — 웹사이트 없는 5,527건 → 4,577건 URL 보강 (느슨한 매칭)
+- **이메일 크롤링 (deep)** — 홈페이지 + contact 페이지 + 하위 경로 자동 탐색
+- **전체 합산 + 포털 이메일 필터링**
+
+### 이메일 검증 (2026-03-20)
+- **쓰레기 이메일 제거** — YouTube 지원 이메일(194건), 플레이스홀더, CSS/JS 파싱 오류
+- **대행사/웹에이전시 필터링** — beautyleader, boazent, cunetwork, maylin, web2002 등 27개 도메인
+- **MX 레코드 검증** — 도메인 이메일 수신 가능 여부 DNS 확인
+- **형식 검증** — regex + 비정상 패턴 제거
+
+### 최종 결과
+
+| 항목 | 수치 |
+|------|------|
+| 전체 병원 (중복 제거) | 6,901건 |
+| URL 보유 | 6,021건 (87%) |
+| 이메일 확보 (검증 전) | 1,123건 |
+| **이메일 확보 (검증 후)** | **883건** |
+| 제거: 쓰레기 | 194건 |
+| 제거: 대행사/에이전시 | 52건 |
+| 제거: MX 레코드 없음 | 11건 |
+| 제거: 형식/패턴 오류 | 50건 |
+
+### 이전 세션 (제안서)
+- 제안서 PDF 생성 완료 (`병원 매출 성장 제안서 - ROGUE.pdf`)
+- 이메일 `blake@therogues.xyz`로 변경
+- FeatPaper 트래킹 링크: `https://featpaper.com/v/O5cZTBCt`
 
 ## 미완료
-- 없음. 이 세션의 PDF 관련 목표는 모두 완료됨.
+- **이메일 발송 캠페인** — Stibee로 콜드 이메일 세팅 (500명 무료 티어)
+- **HIRA specialty 매핑** — HIRA 출처 877건은 specialty 미분류. 피부과/성형외과만 필터링 필요
 
 ## 결정 사항
-- **PDF 파일명**: 받는 사람(병원 원장) 관점에서 매력적인 이름으로 `병원 매출 성장 제안서 - ROGUE.pdf` 채택
-- **페이지 넘버 방식**: 원본 HTML의 `.slide-number`를 스크린샷에서 제외하고, PDF 조립 HTML에서 `position: absolute`로 일관되게 삽입. 슬라이드 높이 차이에 의한 크기/위치 불일치 해결.
-- **PDF 트래킹**: FeatPaper 사용 (무료, 페이지별 체류시간 추적)
-- **이메일 발송**: Stibee 사용 예정 (무료 티어: 500명, 월 2회)
+- 피부과/성형외과에 집중 (priority 1)
+- HIRA = 전수조사 기준, 네이버 = URL/이메일 보강 + 신규 병원 발견
+- 네이버 API 키 순서: `NAVER_CLIENT_ID=TBhAzdUpqs_8BCJFy7d_` (ID와 Secret이 직관적 순서와 반대)
+- 대행사/웹에이전시 이메일은 병원 자체 이메일이 아니므로 제거
+- 포털 이메일(naver, gmail 등)은 유지 (개인 병원에서 많이 사용)
 
 ## 주의 사항
-- `generate-pdf.mjs`의 `.big-number` gradient text 수정(56-62줄)은 `#93bbfc` 고정색으로 대체 중. 원본 HTML의 gradient 효과와 다름.
-- `bar-animate` 클래스 요소들(슬라이드 4)은 별도 애니메이션. 현재 수정 대상 아님.
+- 네이버 API 일일 25,000건 제한
+- HIRA API 일일 1,000건 제한
+- `crawling/output/` 디렉토리의 CSV는 `.gitignore`에 포함
+- 검증 스크립트에 대행사 도메인 블랙리스트 있음 (`validate_emails.py`의 `AGENCY_DOMAINS`)
+
+## 결과 파일 위치
+- `crawling/output/all_hospitals_valid_email.csv` — **최종 유효 이메일 리스트 (883건)**
+- `crawling/output/rejected_emails.csv` — 제거된 이메일 상세 (사유 포함)
+- `crawling/output/all_hospitals_with_email.csv` — 검증 전 이메일 (1,123건)
+- `crawling/output/all_hospitals_merged.csv` — 전체 병원 합산 (6,901건)
+- `crawling/output/step3_hospitals_enriched_final.csv` — HIRA + 네이버 URL 보강 + 이메일
+- `crawling/output/hira_naver_enriched.csv` — HIRA 병원명 네이버 검색 결과
+
+## 변경된 파일 (이번 세션)
+- `crawling/src/naver_client.py` — 페이지네이션 추가 (max_pages)
+- `crawling/src/email_crawler.py` — deep crawl (SUBPAGE_PATHS, contact 키워드 확대)
+- `crawling/src/naver_enrich_hira.py` — **신규** (HIRA 병원명 네이버 검색 + 느슨한 매칭)
+- `crawling/src/apply_naver_enrichment.py` — **신규** (네이버 URL을 HIRA에 반영)
+- `crawling/src/validate_emails.py` — **신규** (이메일 검증: 쓰레기/대행사/MX/형식)
+- `crawling/src/merge_and_cleanup.py` — enriched HIRA 파일 우선 사용하도록 수정
+- `crawling/.env` — 네이버 API 키 추가
+
+## 영업 진행 상황
+- 레픽의원 하용훈 원장 미팅 — 2026-03-24(월) 오전 9:30
+- 월매출 8억 피부과 1곳 미팅 확보
+- 제너러티브랩 통해 병원 소개 받는 중
+- VC 형 통해 개원의 소개 연결 중
 
 ## 다음 단계
-1. FeatPaper에 새 PDF 업로드 → 트래킹 링크 갱신 필요할 수 있음
-2. Stibee로 콜드 이메일 캠페인 세팅 (500명 무료 티어)
-3. 제안서 내용 수정 시 `제안서.html` 편집 후 `node generate-pdf.mjs` 실행
-4. 크롤링 파이프라인 이어서 진행 (네이버 API 키 필요)
-
-## 관련 파일
-- `projects/medical/generate-pdf.mjs` — PDF 생성 스크립트 (파일명 변경, 페이지 넘버 수정)
-- `projects/medical/병원 매출 성장 제안서 - ROGUE.pdf` — 최종 PDF 출력물
-- `projects/medical/제안서.html` — 제안서 원본 HTML (이메일 변경)
-- `projects/medical/website/index.html` — 웹사이트 (이메일 변경)
+1. **Stibee 콜드 이메일 캠페인 세팅** — 제안서 PDF + FeatPaper 링크 포함
+2. **레픽의원 미팅 준비** (3/24 월)
+3. 필요 시 다른 진료과목(치과, 안과 등) 크롤링 확장

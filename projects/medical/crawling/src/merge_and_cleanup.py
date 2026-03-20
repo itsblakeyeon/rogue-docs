@@ -12,7 +12,9 @@ from config import OUTPUT_DIR
 
 
 def main():
-    hira_clean = os.path.join(OUTPUT_DIR, "step3_hospitals_final_clean.csv")
+    hira_enriched = os.path.join(OUTPUT_DIR, "step3_hospitals_enriched_final.csv")
+    hira_fallback = os.path.join(OUTPUT_DIR, "step3_hospitals_final.csv")
+    hira_clean = hira_enriched if os.path.exists(hira_enriched) else hira_fallback
     naver_email = os.path.join(OUTPUT_DIR, "naver_hospitals_with_email.csv")
 
     dfs = []

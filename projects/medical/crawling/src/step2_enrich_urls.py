@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -12,6 +13,8 @@ import pandas as pd
 
 from config import STEP1_OUTPUT, STEP2_OUTPUT, OUTPUT_DIR
 from url_enricher import UrlEnricher
+
+MAX_WORKERS = 10
 
 logging.basicConfig(
     level=logging.INFO,
@@ -87,27 +90,34 @@ def main() -> None:
         df.to_csv(args.output, index=False)
         return
 
-    logger.info("Enriching URLs for %d hospitals", total)
+    logger.info("Enriching URLs for %d hospitals (workers=%d)", total, MAX_WORKERS)
     enricher = UrlEnricher()
 
-    for i, (idx, row) in enumerate(candidates.iterrows(), start=1):
-        hospital_name = row["hospital_name"]
-        logger.info("Enriching URL [%d/%d]: %s", i, total, hospital_name)
-
-        found_url = enricher.search_hospital_url(hospital_name, row.get("address", ""))
+    def _enrich_one(item):
+        idx, row = item
+        name = row["hospital_name"]
+        addr = row.get("address", "")
+        found_url = enricher.search_hospital_url(name, addr)
         if found_url and enricher.validate_url(found_url):
-            df.at[idx, "website"] = found_url
-            logger.info("  Found: %s", found_url)
-        else:
-            logger.info("  No URL found")
+            return idx, found_url
+        return idx, None
 
-        # Periodic save every 50 rows
-        if i % 50 == 0:
-            df.to_csv(args.output, index=False)
-            logger.info("Progress saved (%d/%d)", i, total)
+    completed = 0
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {executor.submit(_enrich_one, (idx, row)): idx for idx, row in candidates.iterrows()}
+        for future in as_completed(futures):
+            completed += 1
+            idx, url = future.result()
+            name = df.at[idx, "hospital_name"]
+            if url:
+                df.at[idx, "website"] = url
+                logger.info("[%d/%d] %s → %s", completed, total, name, url)
+            else:
+                logger.info("[%d/%d] %s → No URL", completed, total, name)
 
-        if enricher.delay > 0:
-            time.sleep(enricher.delay)
+            if completed % 50 == 0:
+                df.to_csv(args.output, index=False)
+                logger.info("Progress saved (%d/%d)", completed, total)
 
     # Final save
     df.to_csv(args.output, index=False)

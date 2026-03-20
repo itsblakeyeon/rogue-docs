@@ -6,6 +6,7 @@
     "pdf": "node generate-pdf.mjs"
   },
   "dependencies": {
+    "pdf-lib": "^1.17.1",
     "puppeteer": "^24.0.0"
   }
 }

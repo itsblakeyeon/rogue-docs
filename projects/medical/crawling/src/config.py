@@ -61,7 +61,7 @@ TARGET_DEPARTMENTS = {
 }
 
 # 요청 설정
-REQUEST_DELAY = 0.3  # 초
+REQUEST_DELAY = 0.1  # 초
 REQUEST_TIMEOUT = 10  # 초
 NUM_OF_ROWS = 100  # 페이지당 결과 수
 

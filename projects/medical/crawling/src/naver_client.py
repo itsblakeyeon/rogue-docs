@@ -18,28 +18,40 @@ class NaverClient:
         self.client_secret = client_secret
         self.delay = delay
 
-    def search(self, query: str) -> List[dict]:
-        """Search for local businesses. Returns up to 5 results."""
+    def search(self, query: str, max_pages: int = 5) -> List[dict]:
+        """Search for local businesses with pagination. Returns up to max_pages * 5 results."""
         headers = {
             "X-Naver-Client-Id": self.client_id,
             "X-Naver-Client-Secret": self.client_secret,
         }
-        params = {
-            "query": query,
-            "display": self.MAX_DISPLAY,
-            "start": 1,
-            "sort": "comment",
-        }
-        try:
-            resp = requests.get(
-                self.BASE_URL, headers=headers, params=params, timeout=10
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return data.get("items", [])
-        except Exception as e:
-            print(f"  Naver search error for '{query}': {e}")
-            return []
+        all_items = []
+        for page in range(max_pages):
+            start = 1 + page * self.MAX_DISPLAY
+            params = {
+                "query": query,
+                "display": self.MAX_DISPLAY,
+                "start": start,
+                "sort": "comment",
+            }
+            try:
+                resp = requests.get(
+                    self.BASE_URL, headers=headers, params=params, timeout=10
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                items = data.get("items", [])
+                if not items:
+                    break
+                all_items.extend(items)
+                if len(items) < self.MAX_DISPLAY:
+                    break  # No more results
+                if self.delay > 0:
+                    time.sleep(self.delay)
+            except Exception as e:
+                if page == 0:
+                    print(f"  Naver search error for '{query}': {e}")
+                break
+        return all_items
 
     @staticmethod
     def clean_title(title: str) -> str:
