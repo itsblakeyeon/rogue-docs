@@ -22,8 +22,12 @@ async function generatePDF() {
 
   // Prepare the page: force animations, hide nav, fix rendering issues
   await page.evaluate(() => {
-    // Force all reveals visible
-    document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+    // Force all reveals visible (remove transition to prevent partial opacity in screenshots)
+    document.querySelectorAll('.reveal').forEach(el => {
+      el.style.transition = 'none';
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    });
 
     // Hide slide indicator
     const indicator = document.getElementById('slide-indicator');
@@ -53,8 +57,8 @@ async function generatePDF() {
       el.style.background = 'none';
       el.style.webkitBackgroundClip = 'unset';
       el.style.backgroundClip = 'unset';
-      el.style.webkitTextFillColor = '#60a5fa';
-      el.style.color = '#60a5fa';
+      el.style.webkitTextFillColor = '#93bbfc';
+      el.style.color = '#93bbfc';
     });
   });
 
