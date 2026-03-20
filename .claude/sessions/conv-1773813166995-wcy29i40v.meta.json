@@ -3,17 +3,17 @@
   "title": "Research healthcare pain points and AI market s...",
   "titleGenerationStatus": "success",
   "createdAt": 1773813166995,
-  "updatedAt": 1773818486871,
-  "lastResponseAt": 1773818486871,
+  "updatedAt": 1773821790572,
+  "lastResponseAt": 1773818570755,
   "sessionId": "631ef0fb-5f83-4b67-b375-d04b68fa2ad5",
   "sdkSessionId": "631ef0fb-5f83-4b67-b375-d04b68fa2ad5",
   "usage": {
     "model": "haiku",
     "inputTokens": 8,
-    "cacheCreationInputTokens": 254,
-    "cacheReadInputTokens": 159978,
+    "cacheCreationInputTokens": 180,
+    "cacheReadInputTokens": 162409,
     "contextWindow": 200000,
-    "contextTokens": 160240,
-    "percentage": 80
+    "contextTokens": 162597,
+    "percentage": 81
   }
 }
