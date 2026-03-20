@@ -1,41 +1,34 @@
 # Handoff
 
 ## 목표
-`rogue-docs`와 `rogue-code` 두 레포를 `rogue` 하나로 통합. 프로젝트 내 medical 관련 폴더 2개(`medical`, `medical-crawling`)도 하나로 합침.
+`문서/의료 PoC.md`를 `프로젝트/medical/`로 이동하고, 기존 CLAUDE.md와 중복 내용을 정리.
 
 ## 완료
-- `rogue-docs` → `rogue`로 이름 변경 (로컬 + GitHub)
-- `rogue-code/medical-crawling`을 git subtree로 `rogue`에 합침 (히스토리 보존)
-- `프로젝트/medical-crawling/` → `프로젝트/medical/crawling/`으로 이동
-- `프로젝트/medical/`의 CLAUDE.md, HANDOFF.md를 두 프로젝트 내용 병합하여 재작성
-- GitHub `rogue-code` 레포 삭제
-- 로컬 `rogue-code/` 폴더 삭제
-- 루트 CLAUDE.md 업데이트 (통합 레포 구조 반영)
-- 모든 변경사항 커밋 + 푸시 완료
+- `문서/의료 PoC.md` → `프로젝트/medical/기획.md`로 이동 + 이름 변경
+- `프로젝트/medical/CLAUDE.md` 정리:
+  - 영업 진행 상황 섹션 → `기획.md` 참조로 대체 (중복 제거)
+  - Who 섹션에 적합/부적합 대상 상세 분석은 `기획.md` 참고 추가
 
 ## 미완료
-- 없음. 레포 통합 작업 전체 완료.
+- 없음.
 
 ## 결정 사항
-- **git subtree --squash 사용**: rogue-code 히스토리를 squash로 보존하면서 합침. 개별 커밋까지는 불필요하다고 판단
-- **medical/crawling/ 하위 배치**: 크롤링 코드를 medical 프로젝트의 서브폴더로 넣음. 제안서 제작과 이메일 크롤링이 같은 프로젝트의 파이프라인이므로
-- **CLAUDE.md/HANDOFF.md 병합**: 두 프로젝트의 컨텍스트를 하나로 합쳐 프로젝트 전체 그림을 볼 수 있도록 함
+- **기획.md를 별도 파일로 유지**: CLAUDE.md는 Claude 작업 가이드(기술), 기획.md는 비즈니스 전략 문서로 성격이 다르므로 분리
+- **파일명 `기획.md`로 변경**: `의료 PoC.md`보다 내용(GTM 전략, 타겟 분석, 영업 현황)에 맞는 이름
 
 ## 주의 사항
-- `crawling/` 내 Python 코드의 경로 참조(`output/` 등)는 crawling 디렉토리 기준으로 작성됨. 실행 시 `cd 프로젝트/medical/crawling/` 후 실행해야 함
-- `.env` 파일은 `crawling/` 안에 있어야 함 (HIRA_API_KEY, NAVER_CLIENT_ID, NAVER_CLIENT_SECRET)
-- `crawling/.venv/`는 git에 포함되지 않음. 새 환경에서는 venv 재생성 필요
+- `기획.md`에 영업 진행 상황(미팅 일정 등)이 있으므로, 영업 업데이트는 `기획.md`에서 관리
+- `crawling/` 실행 시 `cd 프로젝트/medical/crawling/` 후 실행해야 함
+- `.env` 파일은 `crawling/` 안에 있어야 함
 
 ## 다음 단계
 1. 이메일 발송 파이프라인 구축 (크롤링 결과 → 제안서 발송)
-2. `crawling/src/merge_and_cleanup.py`에서 sido 컬럼 정규화 ("서울특별시" → "서울")
+2. `crawling/src/merge_and_cleanup.py`에서 sido 컬럼 정규화
 3. 제안서 PDF/PPT 변환 방식 결정
-4. 구글 폼 응답 알림 설정
+4. 3/24(월) 레픽의원 미팅 준비
 
 ## 관련 파일
-- `CLAUDE.md` — 루트 레포 구조 설명 (이번 세션에서 업데이트)
-- `프로젝트/medical/CLAUDE.md` — medical 프로젝트 통합 가이드 (두 프로젝트 병합)
-- `프로젝트/medical/HANDOFF.md` — medical 프로젝트 인수인계 (두 프로젝트 병합)
-- `프로젝트/medical/crawling/` — rogue-code에서 이동된 크롤링 코드
+- `프로젝트/medical/기획.md` — 비즈니스 기획 문서 (GTM, 타겟 분석, 영업 현황)
+- `프로젝트/medical/CLAUDE.md` — medical 프로젝트 기술 가이드 (이번 세션에서 중복 제거)
 - `프로젝트/medical/제안서.html` — 15슬라이드 영업 제안서
-- `프로젝트/medical/website/` — therogues.xyz 웹사이트
+- `프로젝트/medical/crawling/` — 병원 이메일 크롤링 파이프라인
