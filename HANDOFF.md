@@ -1,11 +1,11 @@
 # Handoff
 
 ## 목표
-`문서/의료 PoC.md`를 `프로젝트/medical/`로 이동하고, 기존 CLAUDE.md와 중복 내용을 정리.
+`문서/의료 PoC.md`를 `projects/medical/`로 이동하고, 기존 CLAUDE.md와 중복 내용을 정리.
 
 ## 완료
-- `문서/의료 PoC.md` → `프로젝트/medical/기획.md`로 이동 + 이름 변경
-- `프로젝트/medical/CLAUDE.md` 정리:
+- `문서/의료 PoC.md` → `projects/medical/기획.md`로 이동 + 이름 변경
+- `projects/medical/CLAUDE.md` 정리:
   - 영업 진행 상황 섹션 → `기획.md` 참조로 대체 (중복 제거)
   - Who 섹션에 적합/부적합 대상 상세 분석은 `기획.md` 참고 추가
 
@@ -18,7 +18,7 @@
 
 ## 주의 사항
 - `기획.md`에 영업 진행 상황(미팅 일정 등)이 있으므로, 영업 업데이트는 `기획.md`에서 관리
-- `crawling/` 실행 시 `cd 프로젝트/medical/crawling/` 후 실행해야 함
+- `crawling/` 실행 시 `cd projects/medical/crawling/` 후 실행해야 함
 - `.env` 파일은 `crawling/` 안에 있어야 함
 
 ## 다음 단계
@@ -28,7 +28,7 @@
 4. 3/24(월) 레픽의원 미팅 준비
 
 ## 관련 파일
-- `프로젝트/medical/기획.md` — 비즈니스 기획 문서 (GTM, 타겟 분석, 영업 현황)
-- `프로젝트/medical/CLAUDE.md` — medical 프로젝트 기술 가이드 (이번 세션에서 중복 제거)
-- `프로젝트/medical/제안서.html` — 15슬라이드 영업 제안서
-- `프로젝트/medical/crawling/` — 병원 이메일 크롤링 파이프라인
+- `projects/medical/기획.md` — 비즈니스 기획 문서 (GTM, 타겟 분석, 영업 현황)
+- `projects/medical/CLAUDE.md` — medical 프로젝트 기술 가이드 (이번 세션에서 중복 제거)
+- `projects/medical/제안서.html` — 15슬라이드 영업 제안서
+- `projects/medical/crawling/` — 병원 이메일 크롤링 파이프라인
