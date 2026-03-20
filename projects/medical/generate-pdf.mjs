@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const htmlPath = join(__dirname, '제안서.html');
-const outputPath = join(__dirname, '제안서_ROGUE.pdf');
+const outputPath = join(__dirname, '병원 매출 성장 제안서 - ROGUE.pdf');
 
 const WIDTH = 1280;
 const HEIGHT = 720;
@@ -29,9 +29,10 @@ async function generatePDF() {
       el.style.transform = 'translateY(0)';
     });
 
-    // Hide slide indicator
+    // Hide slide indicator and slide numbers (numbers will be added in PDF assembly)
     const indicator = document.getElementById('slide-indicator');
     if (indicator) indicator.style.display = 'none';
+    document.querySelectorAll('.slide-number').forEach(el => el.style.display = 'none');
 
     // Disable scroll-snap
     document.documentElement.style.scrollSnapType = 'none';
@@ -105,6 +106,7 @@ async function generatePDF() {
   * { margin: 0; padding: 0; }
   body { background: #0a0e27; }
   .page {
+    position: relative;
     width: ${WIDTH}px;
     height: ${HEIGHT}px;
     overflow: hidden;
@@ -119,6 +121,15 @@ async function generatePDF() {
     width: ${WIDTH}px;
     display: block;
   }
+  .page-number {
+    position: absolute;
+    bottom: 24px;
+    right: 32px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
 </style>
 </head><body>`;
 
@@ -131,7 +142,7 @@ async function generatePDF() {
     const imgStyle = needsScale
       ? `height: ${HEIGHT}px; width: auto; object-fit: contain;`
       : '';
-    pdfHtml += `<div class="page"><img src="data:image/png;base64,${base64}" style="${imgStyle}" /></div>`;
+    pdfHtml += `<div class="page"><img src="data:image/png;base64,${base64}" style="${imgStyle}" /><span class="page-number">${i + 1} / ${screenshotPaths.length}</span></div>`;
   }
 
   pdfHtml += '</body></html>';
