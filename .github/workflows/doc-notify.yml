@@ -1,0 +1,54 @@
+name: 문서 변경 알림
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '4-프로젝트/**/*.md'
+
+permissions:
+  contents: write
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 변경 파일 추출
+        id: diff
+        run: |
+          FILES=$(git diff --name-only HEAD~1 HEAD -- '4-프로젝트/**/*.md')
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          MESSAGE=$(git log -1 --pretty=%s)
+          echo "message=$MESSAGE" >> "$GITHUB_OUTPUT"
+          URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        if: steps.diff.outputs.files != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Slack 알림 전송
+        if: steps.diff.outputs.files != ''
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: C0AM5077A0Z
+          CHANGED_FILES: ${{ steps.diff.outputs.files }}
+          COMMIT_MESSAGE: ${{ steps.diff.outputs.message }}
+          COMMIT_URL: ${{ steps.diff.outputs.url }}
+        run: node .github/scripts/doc-notify.mjs
+
+      - name: 스레드 매핑 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/slack-threads.json
+          git diff --staged --quiet || git commit -m "chore: slack 스레드 매핑 업데이트" && git push
