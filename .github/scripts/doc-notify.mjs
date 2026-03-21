@@ -80,7 +80,7 @@ async function main() {
       console.log(`[${project}] 스레드에 reply 완료`);
     } else {
       // 새 스레드 생성
-      const text = `📁 [${project}] 문서 변경 알림`;
+      const text = `🚀 ${project}`;
       const result = await slackPost({
         channel: CHANNEL_ID,
         text,
