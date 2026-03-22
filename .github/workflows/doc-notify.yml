@@ -40,7 +40,7 @@ jobs:
         if: steps.diff.outputs.files != ''
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_CHANNEL_ID: C0AM5077A0Z
+          SLACK_CHANNEL_ID: C0AMMNUEC6T
           CHANGED_FILES: ${{ steps.diff.outputs.files }}
           COMMIT_MESSAGE: ${{ steps.diff.outputs.message }}
           COMMIT_URL: ${{ steps.diff.outputs.url }}
